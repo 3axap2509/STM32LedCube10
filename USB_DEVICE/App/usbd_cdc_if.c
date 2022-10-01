@@ -94,7 +94,7 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-
+extern uint32_t awaitValue;
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -261,7 +261,12 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  CDC_Transmit_FS(Buf, (uint16_t) *Len);
+  uint32_t value = (uint32_t)Buf[0];
+  if(value >= 0 && value < 256){
+	  awaitValue = value;
+  }
+
+  //CDC_Transmit_FS(Buf, (uint16_t) *Len);
   return (USBD_OK);
   /* USER CODE END 6 */
 }

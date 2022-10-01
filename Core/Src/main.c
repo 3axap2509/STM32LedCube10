@@ -80,6 +80,7 @@ Point3 corner5 = {0, 1, 0};
 Point3 corner6 = {0, 9, 0};
 Point3 corner7 = {9, 1, 0};
 Point3 corner8 = {9, 9, 0};
+uint32_t awaitValue = 50;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -386,7 +387,7 @@ void Redraw()
 	}
 	//upDown += plusZZ;
 	//osDelay(200);
-	HAL_Delay(50);
+	HAL_Delay(awaitValue);
 	//osDelay(1000 / FPS);
 	}
 }
