@@ -1,0 +1,16 @@
+../Core/Src/main.c:90:6:Ping_Latch	8	static
+../Core/Src/main.c:95:6:SetVoxelByXYZptrs	8	static
+../Core/Src/main.c:101:6:SetVoxelByXYZ	8	static
+../Core/Src/main.c:111:6:Draw3DLine	72	static
+../Core/Src/main.c:137:6:drawCirclePointsByXYZP	64	static
+../Core/Src/main.c:182:6:DrawCircle	88	static
+../Core/Src/main.c:211:6:drawSquare	56	static
+../Core/Src/main.c:281:6:DrawCube	16	static
+../Core/Src/main.c:289:6:Render	8	static
+../Core/Src/main.c:321:6:Redraw	40	static
+../Core/Src/main.c:393:7:Randon_Number	16	static
+../Core/Src/main.c:398:5:f	0	static
+../Core/Src/main.c:464:6:SystemClock_Config	72	static,ignoring_inline_asm
+../Core/Src/main.c:413:5:main	48	static,ignoring_inline_asm
+../Core/Src/main.c:625:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:650:6:Error_Handler	0	static,ignoring_inline_asm
