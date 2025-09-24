@@ -94,7 +94,7 @@ void Ping_Latch()
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
 }
-void SetVoxelByXYZptrs(byte* x, byte* y, byte* z)
+void SetVoxelByXYZpointers(byte* x, byte* y, byte* z)
 {
 	int k = *x * 100 + *y * 10 + *z;
 	int n = ((k + 2 - *x * 100) % 8);

@@ -22,7 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include "CubeDriver.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -261,9 +261,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  uint32_t value = (uint32_t)Buf[0];
-  if(value >= 0 && value < 256){
-	  awaitValue = value;
+  enum DriverCommands cubeCommand = (enum DriverCommands)Buf[0];
+  if(cubeCommand == SetDelay){
+	  //uint32_t value = Buf[1] + (Buf[2] << 8) + (Buf[3] << 16) + (Buf[4] << 24);
+	  awaitValue = *(uint32_t*)(&Buf+1);
+	  //awaitValue = value;
   }
 
   //CDC_Transmit_FS(Buf, (uint16_t) *Len);
