@@ -293,10 +293,10 @@ void DrawCube(const Point3 leftTopZ, const byte size)
 }
 
 
-void Render(byte i)
+void Render(const byte i)
 {
 	cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
-	cubeLayerBytes[1] = (1 << (7 -i));
+	cubeLayerBytes[1] = 1 << (7 -i);
 	switch(i)
 	{
 		case 8:
@@ -316,8 +316,8 @@ void Render(byte i)
 			break;
 		}
 	}
-	HAL_SPI_Transmit(&hspi1, (uint8_t *)cubeBytes[i], 12, 100);
-	HAL_SPI_Transmit(&hspi1, (uint8_t *)cubeLayerBytes, 2, 100);
+	HAL_SPI_Transmit(&hspi1, cubeBytes[i], 12, 100);
+	HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
 	Ping_Latch();
 }
 
@@ -393,7 +393,7 @@ void Redraw()
 	}
 }
 
-byte  Randon_Number(const byte lower, const byte upper)
+byte Randon_Number(const byte lower, const byte upper)
 {
 	return (byte)(rand() % (byte)(upper - lower + 1) + lower);
 }
