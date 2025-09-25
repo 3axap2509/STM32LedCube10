@@ -94,13 +94,13 @@ void Ping_Latch()
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
 }
-void SetVoxelByXYZpointers(byte* x, byte* y, byte* z)
+void SetVoxelByXYZPointers(const byte* x, const byte* y, const byte* z)
 {
 	int k = *x * 100 + *y * 10 + *z;
 	int n = ((k + 2 - *x * 100) % 8);
 	TurnBitOn(&cubeBufferBytes[*x][((k + 2 - *x * 100) / 8)], &n);
 }
-void SetVoxelByXYZ(byte x, byte y, byte z)
+void SetVoxelByXYZ(const byte x, const byte y, const byte z)
 {
 	if(x > 9 || x < 0 || y > 9 || y < 0 || z > 9 || z <0)
 		return;
@@ -108,30 +108,33 @@ void SetVoxelByXYZ(byte x, byte y, byte z)
 	int n = ((k + 2 - x * 100) % 8);
 	TurnBitOn(&cubeBufferBytes[x][((k + 2 - x * 100) / 8)], &n);
 }
+void SetVoxelByPoint3(const Point3 p)
+{
+	SetVoxelByXYZ(p.x, p.y, p.z);
+}
 
 
-void Draw3DLine(Point3 a, Point3 b, byte excludeEndPoints)
+void Draw3DLine(const Point3 a, const Point3 b, const byte excludeEndPoints)
 {
 	byte length = 0;
-	byte l1 = (byte)abs(a.x - b.x);
-	byte l2 = (byte)abs(a.y - b.y);
-	byte l3 = (byte)abs(a.z - b.z);
+	const byte l1 = (byte)abs(a.x - b.x);
+	const byte l2 = (byte)abs(a.y - b.y);
+	const byte l3 = (byte)abs(a.z - b.z);
 	length = l1;
 	if(l2 > l1)
 		length = l2;
 	if(l3 > l2)
 		length = l3;
-	byte x,y,z;
 	if(excludeEndPoints == 0)
 	{
-		SetVoxelByXYZ(a.x, a.y, a.z);
-		SetVoxelByXYZ(b.x, b.y, b.z);
+		SetVoxelByPoint3(a);
+		SetVoxelByPoint3(b);
 	}
 	for (byte i = 1; i < length; i++)
 	{
-		x = StraightLine(a, b, x, i, length);// (byte)(a->x + (b->x - a->x) * i / length);
-		y = StraightLine(a, b, y, i, length);
-		z = StraightLine(a, b, z, i, length);
+		const byte x = StraightLine(a, b, x, i, length);// (byte)(a->x + (b->x - a->x) * i / length);
+		const byte y = StraightLine(a, b, y, i, length);
+		const byte z = StraightLine(a, b, z, i, length);
 		SetVoxelByXYZ(x, y, z);
 	}
 }
@@ -210,77 +213,45 @@ void DrawCircle(Point2d center, double raduis, byte layerIndex, figure2dOrientat
 	}
 }
 */
+
+void drawSquareLayer(const Point3 base, const byte size, const byte dx, const byte dy, const byte dz)
+{
+	Point3 c1 = {base.x, base.y, base.z};
+	Point3 c2 = {base.x + dx * size, base.y + dy * size, base.z + dz * size};
+	Point3 c3 = {c1.x + dy * size, c1.y + dx * size, c1.z + dz * size};
+	Point3 c4 = {c2.x + dy * size, c2.y + dx * size, c2.z + dz * size};
+
+	DrawLine(c1, c2);
+	DrawLine(c2, c4);
+	DrawLine(c4, c3);
+	DrawLine(c1, c3);
+}
+
 void drawSquare(Point3 topLeft, byte size, figure2dOrientation o)
 {
-	Point3 c1;
-	Point3 c2;
-	Point3 c3;
-	Point3 c4;
+	byte dx = 0, dy = 0, dz = 0;
+
 	switch(o)
 	{
-		case figure2dOrientationXY:
-		{
-			for(byte i = 0; i < 2; i++)
-			{
-				c1 = (Point3){topLeft.x, topLeft.y, topLeft.z + (i * size)};
-				c2 = (Point3){topLeft.x + size, topLeft.y, topLeft.z + (i * size)};
-				c3 = (Point3){topLeft.x, topLeft.y + size, topLeft.z + (i * size)};
-				c4 = (Point3){topLeft.x + size, topLeft.y + size, topLeft.z + (i * size)};
-				//Draw3DLine(c1, c2, 0);
-				DrawLine(c1,c2);
-				//Draw3DLine(c2, c4, 0);
-				DrawLine(c2,c4);
-				//Draw3DLine(c4, c3, 0);
-				DrawLine(c4,c3);
-				//Draw3DLine(c1, c3, 0);
-				DrawLine(c1,c3);
-			}
-			break;
-		}
-		case figure2dOrientationYZ:
-		{
-			for(byte i = 0; i < 2; i++)
-			{
-				c1 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z};
-				c2 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z};
-				c3 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z + size};
-				c4 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z + size};
-				//Draw3DLine(c1, c2, 0);
-				DrawLine(c1,c2);
-				//Draw3DLine(c2, c4, 0);
-				DrawLine(c2,c4);
-				//Draw3DLine(c4, c3, 0);
-				DrawLine(c4,c3);
-				//Draw3DLine(c1, c3, 0);
-				DrawLine(c1,c3);
-			}
-			break;
-		}
-		case figure2dOrientationXZ:
-		{
-			for(byte i = 0; i < 2; i++)
-			{
-				c1 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z};
-				c2 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z};
-				c3 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z + size};
-				c4 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z + size};
-				//Draw3DLine(c1, c2, 0);
-				DrawLine(c1,c2);
-				//Draw3DLine(c2, c4, 0);
-				DrawLine(c2,c4);
-				//Draw3DLine(c4, c3, 0);
-				DrawLine(c4,c3);
-				//Draw3DLine(c1, c3, 0);
-				DrawLine(c1,c3);
-			}
-			break;
-		}
-		default:
-			break;
+	case figure2dOrientationXY: dz = 1; break;
+	case figure2dOrientationYZ: dx = 1; break;
+	case figure2dOrientationXZ: dy = 1; break;
+	default: return;
+	}
+
+	for (byte i = 0; i < 2; i++)
+	{
+		const Point3 basePoint = {
+			(byte)(topLeft.x + i * dx * size),
+			(byte)(topLeft.y + i * dy * size),
+			(byte)(topLeft.z + i * dz * size)
+		};
+		drawSquareLayer(basePoint, size, (byte)(dx ^ 1), (byte)(dy ^ 1), (byte)(dz ^ 1)); // XOR flips axis
 	}
 }
 
-void DrawCube(Point3 leftTopZ, byte size)
+
+void DrawCube(const Point3 leftTopZ, const byte size)
 {
 	drawSquare(leftTopZ, size, figure2dOrientationXY);
 	drawSquare(leftTopZ, size, figure2dOrientationYZ);
@@ -290,31 +261,27 @@ void DrawCube(Point3 leftTopZ, byte size)
 
 void Render(byte i)
 {
+	cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
+	cubeLayerBytes[1] = (1 << (7 -i));
 	switch(i)
 	{
 		case 8:
 		{
 			cubeLayerBytes[1] = 0;
-			cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
 			cubeLayerBytes[0] |= 0b10000000;
 			break;
 		}
 		case 9:
 		{
 			cubeLayerBytes[1] = 0;
-			cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
 			cubeLayerBytes[0] |= 0b01000000;
 			break;
 		}
 		default:
 		{
-			cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
-			cubeLayerBytes[1] = (1 << (7 -i));
 			break;
 		}
 	}
-	// ------------------------------------------------------------------------------------------
-	// ------------------------------------------------------------------------------------------
 	HAL_SPI_Transmit(&hspi1, (uint8_t *)cubeBytes[i], 12, 100);
 	HAL_SPI_Transmit(&hspi1, (uint8_t *)cubeLayerBytes, 2, 100);
 	Ping_Latch();
@@ -392,13 +359,9 @@ void Redraw()
 	}
 }
 
-byte  Randon_Number(byte lower, byte upper)
+byte  Randon_Number(const byte lower, const byte upper)
 {
-	return((rand() % (upper - lower + 1)) + lower);
-}
-
-int f(int a, int b){
-	return a+b;
+	return (byte)(rand() % (byte)(upper - lower + 1) + lower);
 }
 
 /* USER CODE END PFP */
