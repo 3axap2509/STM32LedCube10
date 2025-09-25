@@ -80,7 +80,7 @@ Point3 corner5 = {0, 1, 0};
 Point3 corner6 = {0, 9, 0};
 Point3 corner7 = {9, 1, 0};
 Point3 corner8 = {9, 9, 0};
-uint32_t awaitValue = 50;
+uint32_t awaitValue = 500;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -214,39 +214,73 @@ void DrawCircle(Point2d center, double raduis, byte layerIndex, figure2dOrientat
 }
 */
 
-void drawSquareLayer(const Point3 base, const byte size, const byte dx, const byte dy, const byte dz)
+void drawSquare(const Point3 topLeft, const byte size, const figure2dOrientation o)
 {
-	Point3 c1 = {base.x, base.y, base.z};
-	Point3 c2 = {base.x + dx * size, base.y + dy * size, base.z + dz * size};
-	Point3 c3 = {c1.x + dy * size, c1.y + dx * size, c1.z + dz * size};
-	Point3 c4 = {c2.x + dy * size, c2.y + dx * size, c2.z + dz * size};
-
-	DrawLine(c1, c2);
-	DrawLine(c2, c4);
-	DrawLine(c4, c3);
-	DrawLine(c1, c3);
-}
-
-void drawSquare(Point3 topLeft, byte size, figure2dOrientation o)
-{
-	byte dx = 0, dy = 0, dz = 0;
-
+	Point3 c1;
+	Point3 c2;
+	Point3 c3;
+	Point3 c4;
 	switch(o)
 	{
-	case figure2dOrientationXY: dz = 1; break;
-	case figure2dOrientationYZ: dx = 1; break;
-	case figure2dOrientationXZ: dy = 1; break;
-	default: return;
-	}
-
-	for (byte i = 0; i < 2; i++)
-	{
-		const Point3 basePoint = {
-			(byte)(topLeft.x + i * dx * size),
-			(byte)(topLeft.y + i * dy * size),
-			(byte)(topLeft.z + i * dz * size)
-		};
-		drawSquareLayer(basePoint, size, (byte)(dx ^ 1), (byte)(dy ^ 1), (byte)(dz ^ 1)); // XOR flips axis
+	case figure2dOrientationXY:
+		{
+			for(byte i = 0; i < 2; i++)
+			{
+				c1 = (Point3){topLeft.x, topLeft.y, topLeft.z + (i * size)};
+				c2 = (Point3){topLeft.x + size, topLeft.y, topLeft.z + (i * size)};
+				c3 = (Point3){topLeft.x, topLeft.y + size, topLeft.z + (i * size)};
+				c4 = (Point3){topLeft.x + size, topLeft.y + size, topLeft.z + (i * size)};
+				//Draw3DLine(c1, c2, 0);
+				DrawLine(c1,c2);
+				//Draw3DLine(c2, c4, 0);
+				DrawLine(c2,c4);
+				//Draw3DLine(c4, c3, 0);
+				DrawLine(c4,c3);
+				//Draw3DLine(c1, c3, 0);
+				DrawLine(c1,c3);
+			}
+			break;
+		}
+	case figure2dOrientationYZ:
+		{
+			for(byte i = 0; i < 2; i++)
+			{
+				c1 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z};
+				c2 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z};
+				c3 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z + size};
+				c4 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z + size};
+				//Draw3DLine(c1, c2, 0);
+				DrawLine(c1,c2);
+				//Draw3DLine(c2, c4, 0);
+				DrawLine(c2,c4);
+				//Draw3DLine(c4, c3, 0);
+				DrawLine(c4,c3);
+				//Draw3DLine(c1, c3, 0);
+				DrawLine(c1,c3);
+			}
+			break;
+		}
+	case figure2dOrientationXZ:
+		{
+			for(byte i = 0; i < 2; i++)
+			{
+				c1 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z};
+				c2 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z};
+				c3 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z + size};
+				c4 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z + size};
+				//Draw3DLine(c1, c2, 0);
+				DrawLine(c1,c2);
+				//Draw3DLine(c2, c4, 0);
+				DrawLine(c2,c4);
+				//Draw3DLine(c4, c3, 0);
+				DrawLine(c4,c3);
+				//Draw3DLine(c1, c3, 0);
+				DrawLine(c1,c3);
+			}
+			break;
+		}
+	default:
+		break;
 	}
 }
 
