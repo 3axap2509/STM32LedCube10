@@ -264,8 +264,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   const DriverCommands cubeCommand = (DriverCommands)Buf[0];
   if(cubeCommand == SetDelay){
 	  //uint32_t value = Buf[1] + (Buf[2] << 8) + (Buf[3] << 16) + (Buf[4] << 24);
-	  awaitValue = *(uint32_t*)(&Buf+1);
-	  //awaitValue = value;
+    // awaitValue = (uint32_t)Buf[1] |
+    //          ((uint32_t)Buf[2] << 8) |
+    //          ((uint32_t)Buf[3] << 16) |
+    //          ((uint32_t)Buf[4] << 24); //*(uint32_t*)(&Buf+1);
+	  memcpy(&awaitValue, &Buf[1], sizeof(uint32_t));
   }
 
   //CDC_Transmit_FS(Buf, (uint16_t) *Len);
