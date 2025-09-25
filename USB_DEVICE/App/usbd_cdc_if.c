@@ -261,7 +261,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-  enum DriverCommands cubeCommand = (enum DriverCommands)Buf[0];
+  const DriverCommands cubeCommand = (DriverCommands)Buf[0];
   if(cubeCommand == SetDelay){
 	  //uint32_t value = Buf[1] + (Buf[2] << 8) + (Buf[3] << 16) + (Buf[4] << 24);
 	  awaitValue = *(uint32_t*)(&Buf+1);

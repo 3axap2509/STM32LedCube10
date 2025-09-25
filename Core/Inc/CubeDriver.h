@@ -4,7 +4,7 @@
 
 #ifndef LED_CUBE_C6T6_CUBEDRIVER_H
 #define LED_CUBE_C6T6_CUBEDRIVER_H
-enum DriverCommands
+typedef enum
 {
     ResetAll = 11,
     ResetLayer = 12,
@@ -18,6 +18,6 @@ enum DriverCommands
     DrawCircle = 34,
 
     AddLayer = 41,
-};
+}DriverCommands;
 
-#endif //LED_CUBE_C6T6_CUBEDRIVER_H
+#endif //LED_CUBE_C6T6_CUBEDRIVER_HS

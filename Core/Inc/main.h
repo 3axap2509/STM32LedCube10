@@ -25,6 +25,7 @@
 
 #ifdef __cplusplus
 extern "C" {
+
 #endif
 
 /* Includes ------------------------------------------------------------------*/
@@ -44,32 +45,32 @@ typedef int8_t byte;
 typedef uint8_t ubyte;
 typedef uint16_t ushort;
 
-struct Point2Struct
+typedef struct
 {
-	byte x;
-	byte y;
-};
-struct Point2dStruct
+    byte x;
+    byte y;
+} Point2;
+
+typedef struct
 {
-	double x;
-	double y;
-};
-struct Point3Struct
+    double x;
+    double y;
+} Point2d;
+
+typedef struct
 {
-	byte x;
-	byte y;
-	byte z;
-};
-typedef struct Point3Struct Point3;
-typedef struct Point2Struct Point2;
-typedef struct Point2dStruct Point2d;
+    byte x;
+    byte y;
+    byte z;
+} Point3;
 
 typedef enum
 {
-	figure2dOrientationXY = 0,
-	figure2dOrientationYZ = 1,
-	figure2dOrientationXZ = 2
-}figure2dOrientation;
+    figure2dOrientationXY = 0,
+    figure2dOrientationYZ = 1,
+    figure2dOrientationXZ = 2
+} figure2dOrientation;
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
