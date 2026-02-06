@@ -327,69 +327,52 @@ void Redraw()
 	byte upDown = 1;
 	double radius = 1.5;
 
-	//Point2d center = {5.5, 5.5};
-	Point3 lefttopZ;
 	byte step = 1;
 	byte cubeSize = 9;
 	byte cubeStep = -2;
 	byte i = 0;
-	for(;;)
+	for (;;)
 	{
-	ClearCubeBytes();
+		ClearCubeBytes();
+		const Point3 leftTopZ = (Point3){i, i, i};
+		DrawCube(leftTopZ, cubeSize);
 
-	//Draw3DLine(corner1, corner2, 0);
-	//Draw3DLine(corner1, corner3, 0);
-	//Draw3DLine(corner3, corner4, 0);
-	//Draw3DLine(corner4, corner2, 0);
-	//Draw3DLine(corner5, corner6, 0);
-	//Draw3DLine(corner5, corner7, 0);
-	//Draw3DLine(corner7, corner8, 0);
-	//Draw3DLine(corner8, corner6, 0);
-	//Draw3DLine(corner4, corner8, 1);
-	//Draw3DLine(corner2, corner6, 1);
-	//Draw3DLine(corner3, corner7, 1);
-	//Draw3DLine(corner1, corner5, 1);
+		if (i + step == 5)
+		{
+			cubeStep = 2;
+			step = -1;
+		}
+		if (i == 0)
+		{
+			cubeStep = -2;
+			step = 1;
+		}
 
-	lefttopZ = (Point3){i, i, i};
-	DrawCube(lefttopZ, cubeSize);
+		i += step;
+		cubeSize += cubeStep;
 
-	if(i + step == 5)
-	{
-		cubeStep = 2;
-		step = -1;
-	}
-	if(i == 0)
-	{
+		//DrawCube(lefttopZ, 5);
+		//for(byte xx = 0; xx < 3; xx++)
+		//{
+		//	for(byte zz = 5; zz < 6; zz++)
+		//	{
+		//DrawCircle(center, radius + upDown, 5, 1);
+		//	}
+		//}
 
-		cubeStep = -2;
-		step = 1;
-	}
-
-	i+=step;
-	cubeSize += cubeStep;
-
-	//DrawCube(lefttopZ, 5);
-	//for(byte xx = 0; xx < 3; xx++)
-	//{
-	//	for(byte zz = 5; zz < 6; zz++)
-	//	{
-			//DrawCircle(center, radius + upDown, 5, 1);
-	//	}
-	//}
-
-	ApplyBufferToRender();
-	if(radius + (float)upDown >= 4)
-	{
-		plusZZ = -1;
-	}
-	if(upDown <= 0)
-	{
-		plusZZ = 1;
-	}
-	//upDown += plusZZ;
-	//osDelay(200);
-	HAL_Delay(awaitValue);
-	//osDelay(1000 / FPS);
+		ApplyBufferToRender();
+		if (radius + (float)upDown >= 4)
+		{
+			plusZZ = -1;
+		}
+		if (upDown <= 0)
+		{
+			plusZZ = 1;
+		}
+		//upDown += plusZZ;
+		//osDelay(200);
+		HAL_Delay(awaitValue);
+		//osDelay(1000 / FPS);
 	}
 }
 
@@ -444,6 +427,16 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim2);
   //HAL_TIM_Base_Start_IT(&htim3);
   /* USER CODE END 2 */
+	//
+	// RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
+	//
+	// // Настраиваем PC13 как выход push-pull с низкой скоростью
+	// GPIOC->CRH &= ~GPIO_CRH_MODE13;
+	// GPIOC->CRH &= ~GPIO_CRH_CNF13;
+	// GPIOC->CRH |= GPIO_CRH_MODE13_0;  // Output mode, max speed 10 MHz
+	//
+	// // Устанавливаем высокий уровень на PC13 (выключаем светодиод)
+	// GPIOC->BRR = GPIO_BSRR_BS13;
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
