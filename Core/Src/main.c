@@ -216,82 +216,114 @@ void DrawCircle(Point2d center, double raduis, byte layerIndex, figure2dOrientat
 }
 */
 
-void drawSquare(const Point3 topLeft, const byte size, const figure2dOrientation o)
+void DrawSquare(const Point3 topLeft, const byte size, const figure2dOrientation o, const uint8_t filled)
 {
     Point3 c1;
     Point3 c2;
     Point3 c3;
     Point3 c4;
-    switch (o)
+    if (!filled)
     {
-    case figure2dOrientationXY:
+        switch (o)
         {
-            for (byte i = 0; i < 2; i++)
+        case figure2dOrientationXY:
             {
-                c1 = (Point3){topLeft.x, topLeft.y, topLeft.z + (i * size)};
-                c2 = (Point3){topLeft.x + size, topLeft.y, topLeft.z + (i * size)};
-                c3 = (Point3){topLeft.x, topLeft.y + size, topLeft.z + (i * size)};
-                c4 = (Point3){topLeft.x + size, topLeft.y + size, topLeft.z + (i * size)};
-                //Draw3DLine(c1, c2, 0);
-                DrawLine(c1, c2);
-                //Draw3DLine(c2, c4, 0);
-                DrawLine(c2, c4);
-                //Draw3DLine(c4, c3, 0);
-                DrawLine(c4, c3);
-                //Draw3DLine(c1, c3, 0);
-                DrawLine(c1, c3);
+                for (byte i = 0; i < 2; i++)
+                {
+                    c1 = (Point3){topLeft.x, topLeft.y, topLeft.z + (i * size)};
+                    c2 = (Point3){topLeft.x + size, topLeft.y, topLeft.z + (i * size)};
+                    c3 = (Point3){topLeft.x, topLeft.y + size, topLeft.z + (i * size)};
+                    c4 = (Point3){topLeft.x + size, topLeft.y + size, topLeft.z + (i * size)};
+                    DrawLine(c1, c2);
+                    DrawLine(c2, c4);
+                    DrawLine(c4, c3);
+                    DrawLine(c1, c3);
+                }
+                break;
             }
+        case figure2dOrientationYZ:
+            {
+                for (byte i = 0; i < 2; i++)
+                {
+                    c1 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z};
+                    c2 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z};
+                    c3 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z + size};
+                    c4 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z + size};
+                    //Draw3DLine(c1, c2, 0);
+                    DrawLine(c1, c2);
+                    //Draw3DLine(c2, c4, 0);
+                    DrawLine(c2, c4);
+                    //Draw3DLine(c4, c3, 0);
+                    DrawLine(c4, c3);
+                    //Draw3DLine(c1, c3, 0);
+                    DrawLine(c1, c3);
+                }
+                break;
+            }
+        case figure2dOrientationXZ:
+            {
+                for (byte i = 0; i < 2; i++)
+                {
+                    c1 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z};
+                    c2 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z};
+                    c3 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z + size};
+                    c4 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z + size};
+                    //Draw3DLine(c1, c2, 0);
+                    DrawLine(c1, c2);
+                    //Draw3DLine(c2, c4, 0);
+                    DrawLine(c2, c4);
+                    //Draw3DLine(c4, c3, 0);
+                    DrawLine(c4, c3);
+                    //Draw3DLine(c1, c3, 0);
+                    DrawLine(c1, c3);
+                }
+                break;
+            }
+        default:
             break;
         }
-    case figure2dOrientationYZ:
+        return;
+    }
+    // === Закрашенный квадрат (обе грани) ===
+    for (byte i = 0; i < 2; i++)
+    {
+        switch (o)
         {
-            for (byte i = 0; i < 2; i++)
+        case figure2dOrientationXY:
             {
-                c1 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z};
-                c2 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z};
-                c3 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z + size};
-                c4 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z + size};
-                //Draw3DLine(c1, c2, 0);
-                DrawLine(c1, c2);
-                //Draw3DLine(c2, c4, 0);
-                DrawLine(c2, c4);
-                //Draw3DLine(c4, c3, 0);
-                DrawLine(c4, c3);
-                //Draw3DLine(c1, c3, 0);
-                DrawLine(c1, c3);
+                byte z = topLeft.z + i * size;
+                for (byte x = topLeft.x; x <= topLeft.x + size; x++)
+                    for (byte y = topLeft.y; y <= topLeft.y + size; y++)
+                        SetVoxelByXYZ(x, y, z);
             }
             break;
-        }
-    case figure2dOrientationXZ:
-        {
-            for (byte i = 0; i < 2; i++)
+        case figure2dOrientationYZ:
             {
-                c1 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z};
-                c2 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z};
-                c3 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z + size};
-                c4 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z + size};
-                //Draw3DLine(c1, c2, 0);
-                DrawLine(c1, c2);
-                //Draw3DLine(c2, c4, 0);
-                DrawLine(c2, c4);
-                //Draw3DLine(c4, c3, 0);
-                DrawLine(c4, c3);
-                //Draw3DLine(c1, c3, 0);
-                DrawLine(c1, c3);
+                byte x = topLeft.x + i * size;
+                for (byte y = topLeft.y; y <= topLeft.y + size; y++)
+                    for (byte z = topLeft.z; z <= topLeft.z + size; z++)
+                        SetVoxelByXYZ(x, y, z);
             }
             break;
+        case figure2dOrientationXZ:
+            {
+                byte y = topLeft.y + i * size;
+                for (byte x = topLeft.x; x <= topLeft.x + size; x++)
+                    for (byte z = topLeft.z; z <= topLeft.z + size; z++)
+                        SetVoxelByXYZ(x, y, z);
+            }
+            break;
+        default: break;
         }
-    default:
-        break;
     }
 }
 
 
-void DrawCube(const Point3 leftTopZ, const byte size)
+void DrawCube(const Point3 leftTopZ, const byte size, const uint8_t filled)
 {
-    drawSquare(leftTopZ, size, figure2dOrientationXY);
-    drawSquare(leftTopZ, size, figure2dOrientationYZ);
-    drawSquare(leftTopZ, size, figure2dOrientationXZ);
+    DrawSquare(leftTopZ, size, figure2dOrientationXY, filled);
+    DrawSquare(leftTopZ, size, figure2dOrientationYZ, filled);
+    DrawSquare(leftTopZ, size, figure2dOrientationXZ, filled);
 }
 
 void delay_us(uint32_t us)
@@ -361,7 +393,7 @@ void Redraw()
     {
         ClearCubeBytes();
         const Point3 leftTopZ = (Point3){i, i, i};
-        DrawCube(leftTopZ, cubeSize);
+        DrawCube(leftTopZ, cubeSize, 0);
 
         if (i + step == 5)
         {
@@ -707,7 +739,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
         if (coldStarted == 0 && timerTicks++ < 100) return;
         if (timerTicks >= 20)
             timerTicks = 0;
-        Render(timerTicks++/2, leftOrRight);
+        Render(timerTicks++ / 2, leftOrRight);
         leftOrRight = !leftOrRight;
         coldStarted = 1;
     }
