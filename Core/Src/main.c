@@ -337,11 +337,11 @@ void Ping_Latch()
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
 }
 
-void Render(const uint8_t layer, const uint8_t leftOrRight)
+void Render(const uint8_t layer, const uint8_t layerPartIndex)
 {
     uint8_t buffer[14]; // 14 байт
 
-    switch (leftOrRight)
+    switch (layerPartIndex)
     {
     case 0:
         // Первая половина: 111000000000
@@ -386,7 +386,7 @@ void Render(const uint8_t layer, const uint8_t leftOrRight)
         }
     default:
         {
-            buffer[12] = leftOrRight == 3 ? cubeBytes[layer][12] & 0b00111111 : 0;
+            buffer[12] = layerPartIndex == 3 ? cubeBytes[layer][12] & 0b00111111 : 0;
             break;
         }
     }
