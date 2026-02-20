@@ -25,7 +25,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-
 #endif
 
 /* Includes ------------------------------------------------------------------*/
@@ -95,6 +94,7 @@ void Flying_Square();
 /* Private defines -----------------------------------------------------------*/
 #define Controll_Button_Pin GPIO_PIN_6
 #define Controll_Button_GPIO_Port GPIOB
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
