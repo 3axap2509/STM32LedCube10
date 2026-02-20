@@ -92,11 +92,6 @@ static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-void Ping_Latch()
-{
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
-}
 
 void SetVoxelByXYZPointers(const byte* x, const byte* y, const byte* z)
 {
@@ -299,11 +294,88 @@ void DrawCube(const Point3 leftTopZ, const byte size)
     drawSquare(leftTopZ, size, figure2dOrientationXZ);
 }
 
+static uint8_t tim3ColdStarted = 0;
+
 void delay_us(uint32_t us)
 {
-    __HAL_TIM_SET_COUNTER(&htim3, 0);
-    while (__HAL_TIM_GET_COUNTER(&htim3) < us);
+    // if (tim3ColdStarted != 0)
+    // {
+    //     __HAL_TIM_SET_COUNTER(&htim3, 0);
+    //     while (__HAL_TIM_GET_COUNTER(&htim3) < us)
+    //     {
+    //     }
+    //     return;
+    // }
+    // const uint32_t cnt1 = TIM3->CNT;
+    uint32_t i = 0;
+    while (i++ < us)
+    {
+        __NOP();
+    }
+    // const uint32_t cnt2 = TIM3->CNT;
+    // tim3ColdStarted = cnt2 - cnt1 > 0 ? 1 : 0;
 }
+
+void Ping_Latch()
+{
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
+    delay_us(13); // маленькая пауза
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
+}
+
+void Render2(const byte i)
+{
+    cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
+    cubeLayerBytes[1] = 1 << (7 -i);
+    switch(i)
+    {
+    case 8:
+        {
+            cubeLayerBytes[1] = 0;
+            cubeLayerBytes[0] |= 0b10000000;
+            break;
+        }
+    case 9:
+        {
+            cubeLayerBytes[1] = 0;
+            cubeLayerBytes[0] |= 0b01000000;
+            break;
+        }
+    default:
+        {
+            break;
+        }
+    }
+    HAL_SPI_Transmit(&hspi1, cubeBytes[i], 12, 100);
+    HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
+    Ping_Latch();
+    cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
+    cubeLayerBytes[1] = 1 << (7 - i);
+    switch (i)
+    {
+    case 8:
+        {
+            cubeLayerBytes[1] = 0;
+            cubeLayerBytes[0] |= 0b10000000;
+            break;
+        }
+    case 9:
+        {
+            cubeLayerBytes[1] = 0;
+            cubeLayerBytes[0] |= 0b01000000;
+            break;
+        }
+    default:
+        {
+            break;
+        }
+    }
+    HAL_SPI_Transmit(&hspi1, cubeBytes[i], 12, 100);
+    HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
+    Ping_Latch();
+}
+
+
 
 void Render(const byte layer)
 {
@@ -337,8 +409,9 @@ void Render(const byte layer)
     memset(buffer + 6, 0, 6); // 7 байт нулей
     HAL_SPI_Transmit(&hspi1, buffer, 12, 100);
     HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
+    delay_us(13); // маленькая пауза
     Ping_Latch();
-    delay_us(300);
+    delay_us(400);
     // Вторая половина: первые 6 байт – нули, следующие 7 – из слоя
     memset(buffer, 0, 6);
     memcpy(buffer + 6, cubeBytes[layer] + 6, 6);
@@ -346,7 +419,7 @@ void Render(const byte layer)
     HAL_SPI_Transmit(&hspi1, buffer, 12, 100);
     HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
     Ping_Latch();
-    delay_us(300);
+    delay_us(400);
     // HAL_SPI_Transmit(&hspi1, cubeBytes[layer], 12, 100);
     // HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
     // Ping_Latch();
@@ -430,14 +503,14 @@ int main(void)
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_SPI1_Init();
+    MX_TIM3_Init();
     MX_TIM2_Init();
     MX_USB_DEVICE_Init();
-    MX_TIM3_Init();
     /* USER CODE BEGIN 2 */
     timerTicks = 0;
 
-    HAL_TIM_Base_Start_IT(&htim2);
     HAL_TIM_Base_Start(&htim3);
+    HAL_TIM_Base_Start_IT(&htim2);
     // while (1) {
     //     uint32_t cnt1 = TIM3->CNT;
     //     HAL_Delay(1);
@@ -698,7 +771,7 @@ static void MX_GPIO_Init(void)
   * @param  htim : TIM handle
   * @retval None
   */
-static uint8_t coldStarted = 0;
+// static uint8_t coldStarted = 0;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
@@ -706,11 +779,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
     if (htim->Instance == TIM2)
     {
         //Render(timerTicks++);
-        if (coldStarted == 0 && timerTicks++ < 100) return;
-        if (timerTicks >= 10)
+        // if (coldStarted == 0 && timerTicks++ < 100) return;
+        Render2(timerTicks++);
+        if (timerTicks == 10)
             timerTicks = 0;
-        Render(timerTicks++);
-        coldStarted = 1;
+        // coldStarted = 1;
     }
     /* USER CODE END Callback 0 */
     if (htim->Instance == TIM1)
