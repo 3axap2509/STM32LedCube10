@@ -63,6 +63,7 @@
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 ubyte cubeBytes[10][13];
@@ -80,7 +81,8 @@ Point3 corner5 = {0, 1, 0};
 Point3 corner6 = {0, 9, 0};
 Point3 corner7 = {9, 1, 0};
 Point3 corner8 = {9, 9, 0};
-uint32_t awaitValue = 500;
+uint32_t awaitValue = 5000;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,6 +90,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void Ping_Latch()
 {
@@ -296,12 +299,17 @@ void DrawCube(const Point3 leftTopZ, const byte size)
     drawSquare(leftTopZ, size, figure2dOrientationXZ);
 }
 
-
-void Render(const byte i)
+void delay_us(uint32_t us)
 {
-    cubeLayerBytes[0] = cubeBytes[i][12] & 0b00111111;
-    cubeLayerBytes[1] = 1 << (7 - i);
-    switch (i)
+    __HAL_TIM_SET_COUNTER(&htim3, 0);
+    while (__HAL_TIM_GET_COUNTER(&htim3) < us);
+}
+
+void Render(const byte layer)
+{
+    cubeLayerBytes[0] = cubeBytes[layer][12] & 0b00111111;
+    cubeLayerBytes[1] = 1 << (7 - layer);
+    switch (layer)
     {
     case 8:
         {
@@ -320,9 +328,29 @@ void Render(const byte i)
             break;
         }
     }
-    HAL_SPI_Transmit(&hspi1, cubeBytes[i], 12, 100);
+
+
+    uint8_t buffer[12]; // 13 байт
+
+    // Первая половина: первые 6 байт из слоя, остальные 7 – нули
+    memcpy(buffer, cubeBytes[layer], 6);
+    memset(buffer + 6, 0, 6); // 7 байт нулей
+    HAL_SPI_Transmit(&hspi1, buffer, 12, 100);
     HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
     Ping_Latch();
+    delay_us(300);
+    // Вторая половина: первые 6 байт – нули, следующие 7 – из слоя
+    memset(buffer, 0, 6);
+    memcpy(buffer + 6, cubeBytes[layer] + 6, 6);
+
+    HAL_SPI_Transmit(&hspi1, buffer, 12, 100);
+    HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
+    Ping_Latch();
+    delay_us(300);
+    // HAL_SPI_Transmit(&hspi1, cubeBytes[layer], 12, 100);
+    // HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
+    // Ping_Latch();
+    // delay_us(200);
 }
 
 void Redraw()
@@ -404,23 +432,30 @@ int main(void)
     MX_SPI1_Init();
     MX_TIM2_Init();
     MX_USB_DEVICE_Init();
+    MX_TIM3_Init();
     /* USER CODE BEGIN 2 */
-    srand(time(NULL));
     timerTicks = 0;
 
     HAL_TIM_Base_Start_IT(&htim2);
+    HAL_TIM_Base_Start(&htim3);
+    // while (1) {
+    //     uint32_t cnt1 = TIM3->CNT;
+    //     HAL_Delay(1);
+    //     uint32_t cnt2 = TIM3->CNT;
+    //     if (cnt2 > cnt1) {
+    //         // Таймер работает: мигаем длинно-коротко
+    //         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); // быстро
+    //         HAL_Delay(100);
+    //         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    //         HAL_Delay(100);
+    //     } else {
+    //         // Таймер не работает: мигаем с длинной паузой (аварийный сигнал)
+    //         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    //         HAL_Delay(500);
+    //     }
+    // }
     //HAL_TIM_Base_Start_IT(&htim3);
     /* USER CODE END 2 */
-    //
-    // RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
-    //
-    // // Настраиваем PC13 как выход push-pull с низкой скоростью
-    // GPIOC->CRH &= ~GPIO_CRH_MODE13;
-    // GPIOC->CRH &= ~GPIO_CRH_CNF13;
-    // GPIOC->CRH |= GPIO_CRH_MODE13_0;  // Output mode, max speed 10 MHz
-    //
-    // // Устанавливаем высокий уровень на PC13 (выключаем светодиод)
-    // GPIOC->BRR = GPIO_BSRR_BS13;
 
     /* Infinite loop */
     /* USER CODE BEGIN WHILE */
@@ -536,7 +571,7 @@ static void MX_TIM2_Init(void)
     htim2.Instance = TIM2;
     htim2.Init.Prescaler = 72 - 1;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 1500;
+    htim2.Init.Period = 999;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -560,6 +595,49 @@ static void MX_TIM2_Init(void)
 }
 
 /**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+    /* USER CODE BEGIN TIM3_Init 0 */
+    __HAL_RCC_TIM3_CLK_ENABLE();
+    /* USER CODE END TIM3_Init 0 */
+
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+    /* USER CODE BEGIN TIM3_Init 1 */
+
+    /* USER CODE END TIM3_Init 1 */
+    htim3.Instance = TIM3;
+    htim3.Init.Prescaler = 72 - 1;
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim3.Init.Period = 65535;
+    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN TIM3_Init 2 */
+
+    /* USER CODE END TIM3_Init 2 */
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -567,14 +645,28 @@ static void MX_TIM2_Init(void)
 static void MX_GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
+    /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+    /* USER CODE END MX_GPIO_Init_1 */
 
     /* GPIO Ports Clock Enable */
+    __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
 
     /*Configure GPIO pin Output Level */
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
+    /*Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
+
+    /*Configure GPIO pin : PC13 */
+    GPIO_InitStruct.Pin = GPIO_PIN_13;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /*Configure GPIO pin : PB4 */
     GPIO_InitStruct.Pin = GPIO_PIN_4;
@@ -588,6 +680,10 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
     HAL_GPIO_Init(Controll_Button_GPIO_Port, &GPIO_InitStruct);
+
+    /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+    /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -602,15 +698,19 @@ static void MX_GPIO_Init(void)
   * @param  htim : TIM handle
   * @retval None
   */
+static uint8_t coldStarted = 0;
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
     /* USER CODE BEGIN Callback 0 */
     if (htim->Instance == TIM2)
     {
-        //DWT_Delay_us(500);
-        Render(timerTicks++);
-        if (timerTicks == 10)
+        //Render(timerTicks++);
+        if (coldStarted == 0 && timerTicks++ < 100) return;
+        if (timerTicks >= 10)
             timerTicks = 0;
+        Render(timerTicks++);
+        coldStarted = 1;
     }
     /* USER CODE END Callback 0 */
     if (htim->Instance == TIM1)
@@ -639,8 +739,7 @@ void Error_Handler(void)
     }
     /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
