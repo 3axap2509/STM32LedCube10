@@ -47,7 +47,7 @@
 #define TurnBitOff(number, n) (number &= ~(1 << n))
 #define SetFalseBits(number, n) (number &= n)
 #define SetTrueBits(number, n) (number |= n)
-#define StraightLine(pA, pB, xyz, t, l) (byte)(pA.xyz + round((pB.xyz - pA.xyz) * ((float)t/(float)l)))
+#define StraightLine(pA, pB, xyz, t, l) (uint8_t)(pA.xyz + round((pB.xyz - pA.xyz) * ((float)t/(float)l)))
 #define ApplyBufferToRender() memcpy(cubeBytes, cubeBufferBytes, sizeof(cubeBufferBytes));
 #define FPS 10
 
@@ -66,9 +66,8 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
-ubyte cubeBytes[10][13];
-ubyte cubeBufferBytes[10][13];
-ubyte cubeLayerBytes[2];
+uint8_t cubeBytes[10][13];
+uint8_t cubeBufferBytes[10][13];
 uint8_t timerTicks;
 
 
@@ -93,14 +92,14 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
-void SetVoxelByXYZPointers(const byte* x, const byte* y, const byte* z)
+void SetVoxelByXYZPointers(const uint8_t* x, const uint8_t* y, const uint8_t* z)
 {
     int k = *x * 100 + *y * 10 + *z;
     int n = ((k + 2 - *x * 100) % 8);
     TurnBitOn(&cubeBufferBytes[*x][((k + 2 - *x * 100) / 8)], &n);
 }
 
-void SetVoxelByXYZ(const byte x, const byte y, const byte z)
+void SetVoxelByXYZ(const uint8_t x, const uint8_t y, const uint8_t z)
 {
     if (x > 9 || x < 0 || y > 9 || y < 0 || z > 9 || z < 0)
         return;
@@ -115,12 +114,12 @@ void SetVoxelByPoint3(const Point3 p)
 }
 
 
-void Draw3DLine(const Point3 a, const Point3 b, const byte excludeEndPoints)
+void Draw3DLine(const Point3 a, const Point3 b, const uint8_t excludeEndPoints)
 {
-    byte length = 0;
-    const byte l1 = (byte)abs(a.x - b.x);
-    const byte l2 = (byte)abs(a.y - b.y);
-    const byte l3 = (byte)abs(a.z - b.z);
+    uint8_t length = 0;
+    const uint8_t l1 = (uint8_t)abs(a.x - b.x);
+    const uint8_t l2 = (uint8_t)abs(a.y - b.y);
+    const uint8_t l3 = (uint8_t)abs(a.z - b.z);
     length = l1;
     if (l2 > l1)
         length = l2;
@@ -131,16 +130,16 @@ void Draw3DLine(const Point3 a, const Point3 b, const byte excludeEndPoints)
         SetVoxelByPoint3(a);
         SetVoxelByPoint3(b);
     }
-    for (byte i = 1; i < length; i++)
+    for (uint8_t i = 1; i < length; i++)
     {
-        const byte x = StraightLine(a, b, x, i, length); // (byte)(a->x + (b->x - a->x) * i / length);
-        const byte y = StraightLine(a, b, y, i, length);
-        const byte z = StraightLine(a, b, z, i, length);
+        const uint8_t x = StraightLine(a, b, x, i, length); // (uint8_t)(a->x + (b->x - a->x) * i / length);
+        const uint8_t y = StraightLine(a, b, y, i, length);
+        const uint8_t z = StraightLine(a, b, z, i, length);
         SetVoxelByXYZ(x, y, z);
     }
 }
 
-void drawCirclePointsByXYZP(int x, int y, Point2d center, byte layerIndex, figure2dOrientation co)
+void drawCirclePointsByXYZP(int x, int y, Point2d center, uint8_t layerIndex, figure2dOrientation co)
 {
     switch (co)
     {
@@ -186,7 +185,7 @@ void drawCirclePointsByXYZP(int x, int y, Point2d center, byte layerIndex, figur
 }
 
 /*
-void DrawCircle(Point2d center, double raduis, byte layerIndex, figure2dOrientation co)
+void DrawCircle(Point2d center, double raduis, uint8_t layerIndex, figure2dOrientation co)
 {
 	int x = 0;
 	int y = (int)(raduis);
@@ -216,7 +215,7 @@ void DrawCircle(Point2d center, double raduis, byte layerIndex, figure2dOrientat
 }
 */
 
-void DrawSquare(const Point3 topLeft, const byte size, const figure2dOrientation o, const uint8_t filled)
+void DrawSquare(const Point3 topLeft, const uint8_t size, const figure2dOrientation o, const uint8_t filled)
 {
     Point3 c1;
     Point3 c2;
@@ -228,7 +227,7 @@ void DrawSquare(const Point3 topLeft, const byte size, const figure2dOrientation
         {
         case figure2dOrientationXY:
             {
-                for (byte i = 0; i < 2; i++)
+                for (uint8_t i = 0; i < 2; i++)
                 {
                     c1 = (Point3){topLeft.x, topLeft.y, topLeft.z + (i * size)};
                     c2 = (Point3){topLeft.x + size, topLeft.y, topLeft.z + (i * size)};
@@ -243,7 +242,7 @@ void DrawSquare(const Point3 topLeft, const byte size, const figure2dOrientation
             }
         case figure2dOrientationYZ:
             {
-                for (byte i = 0; i < 2; i++)
+                for (uint8_t i = 0; i < 2; i++)
                 {
                     c1 = (Point3){topLeft.x + (i * size), topLeft.y, topLeft.z};
                     c2 = (Point3){topLeft.x + (i * size), topLeft.y + size, topLeft.z};
@@ -262,7 +261,7 @@ void DrawSquare(const Point3 topLeft, const byte size, const figure2dOrientation
             }
         case figure2dOrientationXZ:
             {
-                for (byte i = 0; i < 2; i++)
+                for (uint8_t i = 0; i < 2; i++)
                 {
                     c1 = (Point3){topLeft.x, topLeft.y + (i * size), topLeft.z};
                     c2 = (Point3){topLeft.x + size, topLeft.y + (i * size), topLeft.z};
@@ -285,31 +284,31 @@ void DrawSquare(const Point3 topLeft, const byte size, const figure2dOrientation
         return;
     }
     // === Закрашенный квадрат (обе грани) ===
-    for (byte i = 0; i < 2; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
         switch (o)
         {
         case figure2dOrientationXY:
             {
-                byte z = topLeft.z + i * size;
-                for (byte x = topLeft.x; x <= topLeft.x + size; x++)
-                    for (byte y = topLeft.y; y <= topLeft.y + size; y++)
+                uint8_t z = topLeft.z + i * size;
+                for (uint8_t x = topLeft.x; x <= topLeft.x + size; x++)
+                    for (uint8_t y = topLeft.y; y <= topLeft.y + size; y++)
                         SetVoxelByXYZ(x, y, z);
             }
             break;
         case figure2dOrientationYZ:
             {
-                byte x = topLeft.x + i * size;
-                for (byte y = topLeft.y; y <= topLeft.y + size; y++)
-                    for (byte z = topLeft.z; z <= topLeft.z + size; z++)
+                uint8_t x = topLeft.x + i * size;
+                for (uint8_t y = topLeft.y; y <= topLeft.y + size; y++)
+                    for (uint8_t z = topLeft.z; z <= topLeft.z + size; z++)
                         SetVoxelByXYZ(x, y, z);
             }
             break;
         case figure2dOrientationXZ:
             {
-                byte y = topLeft.y + i * size;
-                for (byte x = topLeft.x; x <= topLeft.x + size; x++)
-                    for (byte z = topLeft.z; z <= topLeft.z + size; z++)
+                uint8_t y = topLeft.y + i * size;
+                for (uint8_t x = topLeft.x; x <= topLeft.x + size; x++)
+                    for (uint8_t z = topLeft.z; z <= topLeft.z + size; z++)
                         SetVoxelByXYZ(x, y, z);
             }
             break;
@@ -319,7 +318,7 @@ void DrawSquare(const Point3 topLeft, const byte size, const figure2dOrientation
 }
 
 
-void DrawCube(const Point3 leftTopZ, const byte size, const uint8_t filled)
+void DrawCube(const Point3 leftTopZ, const uint8_t size, const uint8_t filled)
 {
     DrawSquare(leftTopZ, size, figure2dOrientationXY, filled);
     DrawSquare(leftTopZ, size, figure2dOrientationYZ, filled);
@@ -340,60 +339,74 @@ void Ping_Latch()
 
 void Render(const uint8_t layer, const uint8_t leftOrRight)
 {
-    cubeLayerBytes[0] = cubeBytes[layer][12] & 0b00111111;
-    cubeLayerBytes[1] = 1 << (7 - layer);
+    uint8_t buffer[14]; // 14 байт
+
+    switch (leftOrRight)
+    {
+    case 0:
+        // Первая половина: 111000000000
+        memcpy(buffer, cubeBytes[layer], 3);
+        memset(buffer + 3, 0, 11); // 9 байт нулей
+        break;
+    case 1:
+        // Вторая половина:000111000000
+        memset(buffer, 0, 3);
+        memcpy(buffer + 3, cubeBytes[layer] + 3, 3);
+        memset(buffer + 6, 0, 8); // 6 байт нулей
+        break;
+    case 2:
+        // третья половина: 000000111000
+        memset(buffer, 0, 6);
+        memcpy(buffer + 6, cubeBytes[layer] + 6, 3);
+        memset(buffer + 9, 0, 5); // 6 байт нулей
+        break;
+    case 3:
+        // третья половина: 000000000111
+        memset(buffer, 0, 9);
+        memcpy(buffer + 9, cubeBytes[layer] + 9, 3);
+        buffer[12] = cubeBytes[layer][12] & 0b00111111;
+        break;
+        default: break;
+    }
+
+    buffer[13] = 1 << (7 - layer);
     switch (layer)
     {
     case 8:
         {
-            cubeLayerBytes[1] = 0;
-            cubeLayerBytes[0] |= 0b10000000;
+            buffer[13] = 0;
+            buffer[12] |= 0b10000000;
             break;
         }
     case 9:
         {
-            cubeLayerBytes[1] = 0;
-            cubeLayerBytes[0] |= 0b01000000;
+            buffer[13] = 0;
+            buffer[12] |= 0b01000000;
             break;
         }
     default:
         {
+            buffer[12] = leftOrRight == 3 ? cubeBytes[layer][12] & 0b00111111 : 0;
             break;
         }
     }
-
-
-    uint8_t buffer[12]; // 13 байт
-    if (leftOrRight == 0)
-    {
-        // Первая половина: первые 6 байт из слоя, остальные 7 – нули
-        memcpy(buffer, cubeBytes[layer], 6);
-        memset(buffer + 6, 0, 6); // 7 байт нулей
-        HAL_SPI_Transmit(&hspi1, buffer, 12, 100);
-        HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
-        Ping_Latch();
-        return;
-    }
-    // Вторая половина: первые 6 байт – нули, следующие 7 – из слоя
-    memset(buffer, 0, 6);
-    memcpy(buffer + 6, cubeBytes[layer] + 6, 6);
-
-    HAL_SPI_Transmit(&hspi1, buffer, 12, 100);
-    HAL_SPI_Transmit(&hspi1, cubeLayerBytes, 2, 100);
-    Ping_Latch();
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
+    HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
+    // Ping_Latch();
 }
 
 void Redraw()
 {
-    byte step = 1;
-    byte cubeSize = 9;
+    uint8_t step = 1;
+    uint8_t cubeSize = 9;
     int8_t cubeStep = -2;
-    byte i = 0;
+    uint8_t i = 0;
     for (;;)
     {
         ClearCubeBytes();
         const Point3 leftTopZ = (Point3){i, i, i};
-        DrawCube(leftTopZ, cubeSize, 0);
+        DrawCube(leftTopZ, cubeSize, 1);
 
         if (i + step == 5)
         {
@@ -405,22 +418,17 @@ void Redraw()
             cubeStep = -2;
             step = 1;
         }
-
         i += step;
         cubeSize += cubeStep;
-
+        
         ApplyBufferToRender();
-
-        //upDown += plusZZ;
-        //osDelay(200);
         HAL_Delay(awaitValue);
-        //osDelay(1000 / FPS);
     }
 }
 
-byte Randon_Number(const byte lower, const byte upper)
+uint8_t Randon_Number(const uint8_t lower, const uint8_t upper)
 {
-    return (byte)(rand() % (byte)(upper - lower + 1) + lower);
+    return (uint8_t)(rand() % (uint8_t)(upper - lower + 1) + lower);
 }
 
 /* USER CODE END PFP */
@@ -601,7 +609,7 @@ static void MX_TIM2_Init(void)
     htim2.Instance = TIM2;
     htim2.Init.Prescaler = 72 - 1;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 1100 - 1;
+    htim2.Init.Period = 200 - 1;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -729,7 +737,7 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 static uint8_t coldStarted = 0;
-static uint8_t leftOrRight = 0;
+static uint8_t renderPartIndex = 0;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
@@ -737,10 +745,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
     if (htim->Instance == TIM2)
     {
         if (coldStarted == 0 && timerTicks++ < 100) return;
-        if (timerTicks >= 20)
+        if (timerTicks >= 40)
             timerTicks = 0;
-        Render(timerTicks++ / 2, leftOrRight);
-        leftOrRight = !leftOrRight;
+        Render(timerTicks++ / 4, renderPartIndex++);
+        if (renderPartIndex == 4)
+            renderPartIndex = 0;
         coldStarted = 1;
     }
     /* USER CODE END Callback 0 */

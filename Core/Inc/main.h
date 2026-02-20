@@ -41,8 +41,6 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 typedef int8_t byte;
-typedef uint8_t ubyte;
-typedef uint16_t ushort;
 
 typedef struct
 {
