@@ -57,12 +57,17 @@
 #define DL_SELECT(_1, _2, _3, macro, ...) macro
 #define DrawLine(args...) DL_SELECT(args, DL3, DL2, 1)(args)
 
+//#define WholeLayerRender
+//#define HalfLayerRender
+#define QuarterLayerRender
+
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 uint8_t cubeBytes[10][13];
@@ -88,7 +93,14 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
+
+void delay_us(uint32_t us)
+{
+    __HAL_TIM_SET_COUNTER(&htim3, 0);
+    while (__HAL_TIM_GET_COUNTER(&htim3) < us);
+}
 
 void SetVoxelByXYZPointers(const uint8_t* x, const uint8_t* y, const uint8_t* z)
 {
@@ -330,13 +342,65 @@ void Ping_Latch()
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
 }
 
+#if defined(WholeLayerRender)
+
+void Render(const byte i, const uint8_t dummy)
+{
+    uint8_t buffer[14] = {0};
+    memcpy(buffer, cubeBytes[i], 12);
+    buffer[12] = cubeBytes[i][12] & 0b00111111;
+    buffer[13] = 1 << (7 - i);
+    switch (i)
+    {
+    case 8:
+        {
+            buffer[13] = 0;
+            buffer[12] |= 0b10000000;
+            break;
+        }
+    case 9:
+        {
+            buffer[13] = 0;
+            buffer[12] |= 0b01000000;
+            break;
+        }
+    default:
+        {
+            break;
+        }
+    }
+    HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+    Ping_Latch();
+}
+#elif defined(HalfLayerRender)
+
 void Render(const uint8_t layer, const uint8_t layerPartIndex)
 {
-    uint8_t buffer[14] = {0}; // 14 байт
-    uint8_t isEmpty = 0;
-    for (uint8_t i = 0; i < 12; i++)
+    uint8_t start;
+    const uint8_t count = 6;
+    switch (layerPartIndex)
     {
-        isEmpty |= i < 11 ? (cubeBytes[layer][i]) : (cubeBytes[layer][i] & 0b00111111);
+    case 0: start = 0;
+        break;
+    case 1: start = 6;
+        break;
+    default: return;
+    }
+
+    uint8_t buffer[14] = {0}; // 14 байт
+    //todo
+    HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+    Ping_Latch();
+    //todo
+    uint8_t isEmpty = 0;
+    for (uint8_t i = start; i < start + count; i++)
+    {
+        if (i < 11)
+        {
+            isEmpty |= cubeBytes[layer][i];
+            continue;
+        }
+        isEmpty |= (uint8_t)(cubeBytes[layer][i] & 0b00111111);
     }
     if (isEmpty == 0)
     {
@@ -345,33 +409,78 @@ void Render(const uint8_t layer, const uint8_t layerPartIndex)
         return;
     }
 
+    memcpy(buffer + start, cubeBytes[layer] + start, count);
+
+    buffer[12] = cubeBytes[layer][12] & 0b00111111;
+    buffer[13] = 1 << (7 - layer);
+    switch (layer)
+    {
+    case 8:
+        {
+            buffer[13] = 0;
+            buffer[12] |= 0b10000000;
+            break;
+        }
+    case 9:
+        {
+            buffer[13] = 0;
+            buffer[12] |= 0b01000000;
+            break;
+        }
+    default:
+        {
+            break;
+        }
+    }
+    HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+    Ping_Latch();
+}
+#elif defined(QuarterLayerRender)
+void Render(const uint8_t layer, const uint8_t layerPartIndex)
+{
+    uint8_t start;
+    const uint8_t count = 3;
     switch (layerPartIndex)
     {
-    case 0:
-        // Первая половина: 111000000000
-        memcpy(buffer, cubeBytes[layer], 3);
-        memset(buffer + 3, 0, 11); // 9 байт нулей
+    case 0: start = 0;
         break;
-    case 1:
-        // Вторая половина:000111000000
-        memset(buffer, 0, 3);
-        memcpy(buffer + 3, cubeBytes[layer] + 3, 3);
-        memset(buffer + 6, 0, 8); // 6 байт нулей
+    case 1: start = 3;
         break;
-    case 2:
-        // третья половина: 000000111000
-        memset(buffer, 0, 6);
-        memcpy(buffer + 6, cubeBytes[layer] + 6, 3);
-        memset(buffer + 9, 0, 5); // 6 байт нулей
+    case 2: start = 6;
         break;
-    case 3:
-        // третья половина: 000000000111
-        memset(buffer, 0, 9);
-        memcpy(buffer + 9, cubeBytes[layer] + 9, 3);
-        buffer[12] = cubeBytes[layer][12] & 0b00111111;
+    case 3: start = 9;
         break;
-    default: break;
+    default: return;
     }
+
+    uint8_t buffer[14] = {0}; // 14 байт
+    //todo
+    HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+    Ping_Latch();
+    HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+    Ping_Latch();
+    //todo
+    uint8_t isEmpty = 0;
+    for (uint8_t i = start; i < start + count; i++)
+    {
+        if (i < 11)
+        {
+            isEmpty |= cubeBytes[layer][i];
+            continue;
+        }
+        isEmpty |= (uint8_t)(cubeBytes[layer][i] & 0b00111111);
+    }
+    if (isEmpty == 0)
+    {
+        HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+        Ping_Latch();
+        return;
+    }
+
+    memcpy(buffer + start, cubeBytes[layer] + start, count);
+
+    if (layerPartIndex == 3)
+        buffer[12] = cubeBytes[layer][12] & 0b00111111;
 
     buffer[13] = 1 << (7 - layer);
     switch (layer)
@@ -394,12 +503,10 @@ void Render(const uint8_t layer, const uint8_t layerPartIndex)
             break;
         }
     }
-    // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
     HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
-    // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
     Ping_Latch();
 }
-
+#endif
 void Redraw()
 {
     uint8_t step = 1;
@@ -428,8 +535,24 @@ void Redraw()
         cubeSize += cubeStep;
 
 
-        // DrawCube(leftTopZ2, cubeSize2, 1);
-        // DrawCube((Point3){-4, 0, 0}, 9, 1);
+        //DrawCube((Point3){9, 0, 0}, 9, 0);
+
+        // DrawCube((Point3){-5, 0, 0}, 9, 0);
+        // const uint8_t y11 = 7;
+        // DrawCube((Point3){1, 0, 0}, 9, 0);
+        // SetVoxelByXYZ(0, y11, 0);
+        // SetVoxelByXYZ(0, y11, 1);
+        // SetVoxelByXYZ(0, y11, 2);
+        // SetVoxelByXYZ(0, y11, 3);
+        // SetVoxelByXYZ(0, y11, 4);
+        // SetVoxelByXYZ(0, y11, 5);
+        // SetVoxelByXYZ(0, y11, 6);
+        // SetVoxelByXYZ(0, y11, 7);
+        // SetVoxelByXYZ(0, y11, 8);
+        // SetVoxelByXYZ(0, y11, 9);
+        // SetVoxelByXYZ(0, y11, 0);
+        // SetVoxelByXYZ(0, y11, 9);
+        // SetVoxelByXYZ(1, 1, 1);
         ApplyBufferToRender();
         HAL_Delay(awaitValue);
     }
@@ -478,10 +601,12 @@ int main(void)
     MX_GPIO_Init();
     MX_SPI1_Init();
     MX_TIM2_Init();
+    MX_TIM3_Init();
     MX_USB_DEVICE_Init();
     /* USER CODE BEGIN 2 */
     timerTicks = 0;
 
+    HAL_TIM_Base_Start(&htim3);
     HAL_TIM_Base_Start_IT(&htim2);
     // while (1) {
     //     uint32_t cnt1 = TIM3->CNT;
@@ -616,7 +741,13 @@ static void MX_TIM2_Init(void)
     htim2.Instance = TIM2;
     htim2.Init.Prescaler = 72 - 1;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 100 - 1;
+#if defined(WholeLayerRender)
+    htim2.Init.Period = 2000 - 1;
+#elif defined(HalfLayerRender)
+    htim2.Init.Period = 1000 - 1;
+#elif defined(QuarterLayerRender)
+    htim2.Init.Period = 550 - 1;
+#endif
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -637,6 +768,49 @@ static void MX_TIM2_Init(void)
     /* USER CODE BEGIN TIM2_Init 2 */
 
     /* USER CODE END TIM2_Init 2 */
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+    /* USER CODE BEGIN TIM3_Init 0 */
+    __HAL_RCC_TIM3_CLK_ENABLE();
+    /* USER CODE END TIM3_Init 0 */
+
+    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+    /* USER CODE BEGIN TIM3_Init 1 */
+
+    /* USER CODE END TIM3_Init 1 */
+    htim3.Instance = TIM3;
+    htim3.Init.Prescaler = 72 - 1;
+    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim3.Init.Period = 65535;
+    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+    {
+        Error_Handler();
+    }
+    /* USER CODE BEGIN TIM3_Init 2 */
+
+    /* USER CODE END TIM3_Init 2 */
 }
 
 /**
@@ -700,6 +874,17 @@ static void MX_GPIO_Init(void)
   * @param  htim : TIM handle
   * @retval None
   */
+
+#if defined(WholeLayerRender)
+static uint8_t timerTicksToReset = 10;
+static uint8_t timerTicksDivider = 1;
+#elif defined(HalfLayerRender)
+static uint8_t timerTicksToReset = 20;
+static uint8_t timerTicksDivider = 2;
+#elif defined(QuarterLayerRender)
+static uint8_t timerTicksToReset = 40;
+static uint8_t timerTicksDivider = 4;
+#endif
 static uint8_t coldStarted = 0;
 static uint8_t renderPartIndex = 0;
 
@@ -708,11 +893,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
     /* USER CODE BEGIN Callback 0 */
     if (htim->Instance == TIM2)
     {
-        if (coldStarted == 0 && timerTicks++ < 100) return;
-        if (timerTicks >= 40)
+        if (coldStarted == 0 && timerTicks++ < timerTicksToReset << 1) return;
+        if (timerTicks >= timerTicksToReset)
             timerTicks = 0;
-        Render(timerTicks++ / 4, renderPartIndex++);
-        if (renderPartIndex == 4)
+        Render(timerTicks++ / timerTicksDivider, renderPartIndex++);
+        if (renderPartIndex == timerTicksDivider)
             renderPartIndex = 0;
         coldStarted = 1;
     }
@@ -722,7 +907,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
         HAL_IncTick();
     }
     /* USER CODE BEGIN Callback 1 */
-
+    if (htim->Instance == TIM3)
+    {
+    }
     /* USER CODE END Callback 1 */
 }
 
