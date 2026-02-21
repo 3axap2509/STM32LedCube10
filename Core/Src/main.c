@@ -63,7 +63,6 @@
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim2;
-TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
 uint8_t cubeBytes[10][13];
@@ -80,7 +79,7 @@ Point3 corner5 = {0, 1, 0};
 Point3 corner6 = {0, 9, 0};
 Point3 corner7 = {9, 1, 0};
 Point3 corner8 = {9, 9, 0};
-uint32_t awaitValue = 500;
+uint32_t awaitValue = 1000;
 
 /* USER CODE END PV */
 
@@ -89,7 +88,6 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM2_Init(void);
-static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 void SetVoxelByXYZPointers(const uint8_t* x, const uint8_t* y, const uint8_t* z)
@@ -325,11 +323,6 @@ void DrawCube(const Point3 leftTopZ, const uint8_t size, const uint8_t filled)
     DrawSquare(leftTopZ, size, figure2dOrientationXZ, filled);
 }
 
-void delay_us(uint32_t us)
-{
-    __HAL_TIM_SET_COUNTER(&htim3, 0);
-    while (__HAL_TIM_GET_COUNTER(&htim3) < us);
-}
 
 void Ping_Latch()
 {
@@ -339,7 +332,18 @@ void Ping_Latch()
 
 void Render(const uint8_t layer, const uint8_t layerPartIndex)
 {
-    uint8_t buffer[14]; // 14 байт
+    uint8_t buffer[14] = {0}; // 14 байт
+    uint8_t isEmpty = 0;
+    for (uint8_t i = 0; i < 12; i++)
+    {
+        isEmpty |= i < 11 ? (cubeBytes[layer][i]) : (cubeBytes[layer][i] & 0b00111111);
+    }
+    if (isEmpty == 0)
+    {
+        HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
+        Ping_Latch();
+        return;
+    }
 
     switch (layerPartIndex)
     {
@@ -366,7 +370,7 @@ void Render(const uint8_t layer, const uint8_t layerPartIndex)
         memcpy(buffer + 9, cubeBytes[layer] + 9, 3);
         buffer[12] = cubeBytes[layer][12] & 0b00111111;
         break;
-        default: break;
+    default: break;
     }
 
     buffer[13] = 1 << (7 - layer);
@@ -390,23 +394,25 @@ void Render(const uint8_t layer, const uint8_t layerPartIndex)
             break;
         }
     }
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
+    // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinHigh);
     HAL_SPI_Transmit(&hspi1, buffer, 14, 100);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
-    // Ping_Latch();
+    // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, PinLow);
+    Ping_Latch();
 }
 
 void Redraw()
 {
     uint8_t step = 1;
     uint8_t cubeSize = 9;
+    uint8_t cubeSize2 = 9;
     int8_t cubeStep = -2;
     uint8_t i = 0;
+    const Point3 leftTopZ2 = (Point3){8, 0, 0};
     for (;;)
     {
         ClearCubeBytes();
         const Point3 leftTopZ = (Point3){i, i, i};
-        DrawCube(leftTopZ, cubeSize, 1);
+        DrawCube(leftTopZ, cubeSize, 0);
 
         if (i + step == 5)
         {
@@ -420,7 +426,10 @@ void Redraw()
         }
         i += step;
         cubeSize += cubeStep;
-        
+
+
+        // DrawCube(leftTopZ2, cubeSize2, 1);
+        // DrawCube((Point3){-4, 0, 0}, 9, 1);
         ApplyBufferToRender();
         HAL_Delay(awaitValue);
     }
@@ -468,13 +477,11 @@ int main(void)
     /* Initialize all configured peripherals */
     MX_GPIO_Init();
     MX_SPI1_Init();
-    MX_TIM3_Init();
     MX_TIM2_Init();
     MX_USB_DEVICE_Init();
     /* USER CODE BEGIN 2 */
     timerTicks = 0;
 
-    HAL_TIM_Base_Start(&htim3);
     HAL_TIM_Base_Start_IT(&htim2);
     // while (1) {
     //     uint32_t cnt1 = TIM3->CNT;
@@ -609,7 +616,7 @@ static void MX_TIM2_Init(void)
     htim2.Instance = TIM2;
     htim2.Init.Prescaler = 72 - 1;
     htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 200 - 1;
+    htim2.Init.Period = 100 - 1;
     htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
     htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
     if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -630,49 +637,6 @@ static void MX_TIM2_Init(void)
     /* USER CODE BEGIN TIM2_Init 2 */
 
     /* USER CODE END TIM2_Init 2 */
-}
-
-/**
-  * @brief TIM3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM3_Init(void)
-{
-    /* USER CODE BEGIN TIM3_Init 0 */
-    __HAL_RCC_TIM3_CLK_ENABLE();
-    /* USER CODE END TIM3_Init 0 */
-
-    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-    /* USER CODE BEGIN TIM3_Init 1 */
-
-    /* USER CODE END TIM3_Init 1 */
-    htim3.Instance = TIM3;
-    htim3.Init.Prescaler = 72 - 1;
-    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim3.Init.Period = 65535;
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-    {
-        Error_Handler();
-    }
-    /* USER CODE BEGIN TIM3_Init 2 */
-
-    /* USER CODE END TIM3_Init 2 */
 }
 
 /**
@@ -759,9 +723,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
     }
     /* USER CODE BEGIN Callback 1 */
 
-    if (htim->Instance == TIM3)
-    {
-    }
     /* USER CODE END Callback 1 */
 }
 
